@@ -1,41 +1,39 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted } from 'vue'
 
-defineProps<{ msg: string }>()
+const ws = new WebSocket('ws://127.0.0.1:3000/')
 
-const count = ref(0)
+const init = () => {
+  // 创建 WebSocket 连接
+
+  // 监听 WebSocket 连接成功事件
+  ws.addEventListener('open', () => {
+    console.log('WebSocket connected!')
+  })
+
+  // 监听 WebSocket 收到服务器发送过来的消息事件
+  ws.addEventListener('message', async (event) => {
+    console.log('Message from server:', event.data)
+  })
+
+  // 监听 WebSocket 出错事件
+  ws.addEventListener('error', (event) => {
+    console.error('WebSocket error', event)
+  })
+
+  // 监听 WebSocket 关闭事件
+  ws.addEventListener('close', (event) => {
+    console.warn(event)
+  })
+}
+
+onMounted(() => {
+  init()
+})
 </script>
 
 <template>
-  <h1>{{ msg }}</h1>
-
-  <div class="card">
-    <button type="button" @click="count++">count is {{ count }}</button>
-    <p>
-      Edit
-      <code>components/HelloWorld.vue</code> to test HMR
-    </p>
-  </div>
-
-  <p>
-    Check out
-    <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank"
-      >create-vue</a
-    >, the official Vue + Vite starter
-  </p>
-  <p>
-    Learn more about IDE Support for Vue in the
-    <a
-      href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support"
-      target="_blank"
-      >Vue Docs Scaling up Guide</a
-    >.
-  </p>
-  <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
+  <div></div>
 </template>
 
-<style scoped>
-.read-the-docs {
-  color: #888;
-}
-</style>
+<style scoped></style>
