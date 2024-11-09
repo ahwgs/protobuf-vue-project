@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { io } from 'socket.io-client'
 import { NButton, NInfiniteScroll, NInput } from 'naive-ui'
+import { decodeMessage, encodeMessage } from '../proto/proto.js'
 
 const socket = io('http://127.0.0.1:3000')
 
@@ -19,13 +20,7 @@ const messageList = ref<
 
 const init = () => {
   socket.on('connect', () => {
-    console.log('connect')
     connectState.value = true
-    messageList.value.push({
-      userRole: 'server',
-      time: new Date().getTime(),
-      content: '服务器上线了',
-    })
   })
 
   socket.on('disconnect', () => {
@@ -38,24 +33,28 @@ const init = () => {
     })
   })
 
-  socket.on('message', (data) => {
-    console.log('收到服务端信息', data)
+  socket.on('message', async (data) => {
+    const message = decodeMessage(new Uint8Array(data))
+    console.log('收到服务端信息', message)
     messageList.value.push({
       userRole: 'server',
       time: new Date().getTime(),
-      content: data,
+      content: message.text || '',
     })
   })
 }
 
 const handleSend = () => {
-  socket.emit('message', inputText.value)
-  console.log('客户端发送', inputText.value)
+  const buffer = encodeMessage({ text: inputText.value })
+
   messageList.value.push({
     userRole: 'client',
     time: new Date().getTime(),
     content: inputText.value,
   })
+
+  socket.emit('message', buffer)
+
   inputText.value = ''
 }
 
