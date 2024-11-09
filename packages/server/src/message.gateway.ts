@@ -1,9 +1,5 @@
-import {
-  SubscribeMessage,
-  MessageBody,
-  ConnectedSocket,
-} from '@nestjs/websockets';
-import { Socket, Server } from 'socket.io';
+import { SubscribeMessage, MessageBody } from '@nestjs/websockets';
+import { Server } from 'socket.io';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -12,7 +8,9 @@ import {
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 
-@WebSocketGateway()
+@WebSocketGateway({
+  cors: true,
+})
 export class MessageGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
@@ -32,7 +30,6 @@ export class MessageGateway
   @SubscribeMessage('message')
   handleMessage(@MessageBody() data: string) {
     this.logger.log('Server Received message:', data);
-    // Handle received message
     this.server.emit('message', data);
   }
 }

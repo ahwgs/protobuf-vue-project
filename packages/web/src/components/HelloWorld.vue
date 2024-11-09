@@ -1,30 +1,62 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import { io } from 'socket.io-client'
+import { NButton, NInfiniteScroll, NInput } from 'naive-ui'
 
-const ws = new WebSocket('ws://127.0.0.1:3000/')
+const socket = io('http://127.0.0.1:3000')
+
+const inputText = ref('')
+
+const connectState = ref(false)
+
+const messageList = ref<
+  {
+    userRole: 'client' | 'server'
+    time: number
+    content: string
+  }[]
+>([])
 
 const init = () => {
-  // 创建 WebSocket 连接
-
-  // 监听 WebSocket 连接成功事件
-  ws.addEventListener('open', () => {
-    console.log('WebSocket connected!')
+  socket.on('connect', () => {
+    console.log('connect')
+    connectState.value = true
+    messageList.value.push({
+      userRole: 'server',
+      time: new Date().getTime(),
+      content: '服务器上线了',
+    })
   })
 
-  // 监听 WebSocket 收到服务器发送过来的消息事件
-  ws.addEventListener('message', async (event) => {
-    console.log('Message from server:', event.data)
+  socket.on('disconnect', () => {
+    console.log('disconnect')
+    connectState.value = false
+    messageList.value.push({
+      userRole: 'server',
+      time: new Date().getTime(),
+      content: '服务器下线了',
+    })
   })
 
-  // 监听 WebSocket 出错事件
-  ws.addEventListener('error', (event) => {
-    console.error('WebSocket error', event)
+  socket.on('message', (data) => {
+    console.log('收到服务端信息', data)
+    messageList.value.push({
+      userRole: 'server',
+      time: new Date().getTime(),
+      content: data,
+    })
   })
+}
 
-  // 监听 WebSocket 关闭事件
-  ws.addEventListener('close', (event) => {
-    console.warn(event)
+const handleSend = () => {
+  socket.emit('message', inputText.value)
+  console.log('客户端发送', inputText.value)
+  messageList.value.push({
+    userRole: 'client',
+    time: new Date().getTime(),
+    content: inputText.value,
   })
+  inputText.value = ''
 }
 
 onMounted(() => {
@@ -33,7 +65,63 @@ onMounted(() => {
 </script>
 
 <template>
-  <div></div>
+  <div class="list">
+    <n-infinite-scroll style="height: 500px" :distance="10">
+      <div
+        v-for="item in messageList"
+        :key="item.time"
+        class="message"
+        :class="{ reverse: item.userRole === 'client' }"
+      >
+        <div class="avatar">{{ item.userRole }}</div>
+        <span> {{ item.content }} </span>
+      </div>
+    </n-infinite-scroll>
+
+    <div>connectState:{{ connectState }}</div>
+    <div v-if="connectState">
+      <n-input v-model:value="inputText" type="textarea" placeholder="输入" />
+      <n-button type="primary" @click="handleSend"> 发送 </n-button>
+    </div>
+  </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.message {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.message:last-child {
+  margin-bottom: 0;
+}
+
+.reverse {
+  flex-direction: row-reverse;
+}
+
+.text {
+  text-align: center;
+}
+
+.reverse .avatar {
+  margin-left: 10px;
+}
+
+.avatar {
+  width: 50px;
+  height: 50px;
+  background-color: #6a386e;
+  border-radius: 50%;
+  margin-right: 10px;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.list {
+  width: 1000px;
+}
+</style>
